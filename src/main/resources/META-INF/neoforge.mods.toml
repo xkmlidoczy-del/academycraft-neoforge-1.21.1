@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="GPL-3.0; upstream additional restrictions, see NOTICE"
+[[mods]]
+modId="academy"
+version="0.1.0-dev"
+displayName="AcademyCraft Classic Port (development)"
+authors="Lambda Innovation; port contributors"
+description='''Development port of AcademyCraft classic 1.7.10. Not feature-complete.'''
+[[dependencies.academy]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.252,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.academy]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"

@@ -1,0 +1,429 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+version = '0.1.0-dev'
+group = 'cn.academy'
+base { archivesName = 'academycraft' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+neoForge {
+    version = '21.1.252'
+    runs {
+        client { client(); gameDirectory = layout.projectDirectory.dir(providers.gradleProperty('clientDirectory').getOrElse('run-client')); if(providers.gradleProperty('visualQA').getOrElse('false').toBoolean())systemProperty 'academy.visual.qa','true'; if(providers.gradleProperty('wirelessQA').getOrElse('false').toBoolean())systemProperty 'academy.wireless.qa','true' }
+        server { server(); gameDirectory = layout.projectDirectory.dir('run-server'); programArgument '--nogui' }
+        gameTestServer {
+            type = 'gameTestServer'
+            // Independent run directories prevent test fixtures from touching client/server saves.
+            gameDirectory = layout.projectDirectory.dir(providers.gradleProperty('gameTestDirectory').getOrElse('run-gametest'))
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'academy'
+        }
+        restartGameTest {
+            type = 'gameTestServer'
+            gameDirectory = layout.projectDirectory.dir(providers.gradleProperty('restartDirectory').getOrElse('run-restart'))
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'academy_restart'
+            systemProperty 'academy.restart.phase', providers.gradleProperty('restartPhase').getOrElse('verify')
+            programArgument '--world'
+            programArgument 'academy-restart-world'
+        }
+    }
+    mods { academy { sourceSet(sourceSets.main) } }
+}
+repositories { mavenCentral() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+tasks.register('coreTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.CoreRegressionTest'
+    enableAssertions = true
+}
+tasks.named('check') { dependsOn 'coreTest' }
+tasks.register('dataTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.PortDataRegressionTest'
+    enableAssertions = true
+}
+tasks.named('check') { dependsOn 'dataTest' }
+tasks.register('classicCommandStateTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.ClassicCommandStateRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'classicCommandStateTest'}
+apply from: 'gradle/classic-numeric-ledgers-tests.gradle'
+// ModDevGradle wires game dependencies to main; these standalone data checks also use NBT.
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+tasks.register('visualTimelineTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.VisualTimelineRegressionTest'
+    enableAssertions = true
+}
+tasks.named('check') { dependsOn 'visualTimelineTest' }
+['directedShockTest': 'cn.academy.port.skill.DirectedShockRegressionTest',
+ 'threateningTeleportTest': 'cn.academy.port.ThreateningTeleportRegressionTest',
+ 'electronBombTest': 'cn.academy.port.skill.ElectronBombRegressionTest'].each { taskName, className ->
+    tasks.register(taskName, JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = className
+        enableAssertions = true
+    }
+    tasks.named('check') { dependsOn taskName }
+}
+
+tasks.named("jar") { exclude("cn/academy/port/gametest/**") }
+tasks.register('coinTossTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.CoinTossRegressionTest'
+    enableAssertions = true
+}
+tasks.named('check') { dependsOn 'coinTossTest' }
+tasks.register('firstSkillVisualTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.FirstSkillVisualRegressionTest'
+    enableAssertions = true
+}
+tasks.named('check') { dependsOn 'firstSkillVisualTest' }
+['developmentTest':'cn.academy.port.develop.DevelopmentRegressionTest',
+ 'developerEnergyTest':'cn.academy.port.develop.DeveloperEnergyRegressionTest'].each { taskName, className ->
+    tasks.register(taskName, JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = className
+        enableAssertions = true
+    }
+    tasks.named('check') { dependsOn taskName }
+}
+tasks.register('serverClassloadingTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.ServerClassloadingRegressionTest'
+}
+tasks.named('check') { dependsOn 'serverClassloadingTest' }
+tasks.register('clientSessionTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.ClientSessionRegressionTest'
+}
+tasks.named('check') { dependsOn 'clientSessionTest' }
+tasks.register('corruptionTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.CorruptedSaveRegressionTest'
+}
+tasks.named('check') { dependsOn 'corruptionTest' }
+tasks.register('classicInputTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.ClassicInputRegressionTest'
+}
+tasks.named('check') { dependsOn 'classicInputTest' }
+tasks.register('resourceAtlasTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.ResourceAtlasRegressionTest'
+}
+tasks.named('check') { dependsOn 'resourceAtlasTest' }
+['chargingTest':'cn.academy.port.CurrentChargingRegressionTest',
+ 'chargingEnergyTest':'cn.academy.port.skill.ChargingEnergyRegressionTest',
+ 'chargingVisualTest':'cn.academy.port.ChargingVisualRegressionTest'].each { taskName, className ->
+    tasks.register(taskName, JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = className
+        enableAssertions = true
+    }
+    tasks.named('check') { dependsOn taskName }
+}
+
+['presetTest':'cn.academy.port.PresetRegressionTest',
+ 'classicHudTest':'cn.academy.port.ClassicHudRegressionTest',
+ 'classicVectorMaskTest':'cn.academy.port.client.ClassicVectorMaskRegressionTest',
+ 'classicPauseBlendTest':'cn.academy.port.client.ClassicPauseBlendRegressionTest',
+ 'groundShockTest':'cn.academy.port.GroundShockRegressionTest',
+ 'groundShockVisualTest':'cn.academy.port.GroundShockVisualRegressionTest'].each { taskName,className ->
+    tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+    tasks.named('check') {dependsOn taskName}
+}
+
+tasks.register('survivalDataTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.survival.ClassicSurvivalDataRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'survivalDataTest'}
+
+// Opt-in disposable loopback QA; harness classes remain excluded from the mod JAR.
+apply from: 'gradle/socket-qa.gradle'
+
+['machineDeveloperTest':'cn.academy.port.machine.MachineDeveloperRegressionTest',
+ 'developerModelTest':'cn.academy.port.DeveloperModelRegressionTest',
+ 'developerEmissionTest':'cn.academy.port.client.DeveloperModelEmissionRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Original AcademyCraft1.0.7 energy unit and source recipe regression checks.
+['classicEnergyTest':'cn.academy.port.energy.ClassicEnergyRegressionTest',
+ 'classicEnergyDataTest':'cn.academy.port.energy.ClassicEnergyDataRegressionTest',
+ 'classicEnergyServerLinkTest':'cn.academy.port.energy.ClassicEnergyServerLinkRegressionTest'].each { taskName,className ->
+    tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+    tasks.named('check') {dependsOn taskName}
+}
+
+// Source-faithful developer layout, terminal, and timing regression.
+tasks.register('classicDeveloperUiTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.client.ClassicDeveloperUiRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'classicDeveloperUiTest'}
+// Font GPU texture IDs remain exclusive across simultaneous HUD/GUI owners and close/reopen.
+tasks.register('classicFontOwnershipTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.client.ClassicFontTextureOwnershipRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'classicFontOwnershipTest'}
+
+['solarTest':'cn.academy.port.solar.ClassicSolarRegressionTest',
+ 'solarDataTest':'cn.academy.port.solar.ClassicSolarDataRegressionTest',
+ 'solarServerLinkTest':'cn.academy.port.solar.ClassicSolarServerLinkRegressionTest'].each { taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+['magneticClassloadingTest':'cn.academy.port.MagneticServerClassloadingRegressionTest',
+ 'magneticTest':'cn.academy.port.MagneticRegressionTest',
+ 'thunderBoltTest':'cn.academy.port.skill.ThunderBoltRegressionTest',
+ 'thunderBoltLearningTest':'cn.academy.port.skill.ThunderBoltLearningRegressionTest',
+ 'thunderBoltVisualTest':'cn.academy.port.client.ThunderBoltVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+// Canonical portable OBJ transforms, context overrides and read-only IF gauge/tooltip.
+['portableVisualTest':'cn.academy.port.client.ClassicPortableVisualRegressionTest',
+ 'portableDisplayTest':'cn.academy.port.develop.ClassicPortableDisplayRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+// Restored official1.7.10 vanilla/Forge caller basis around the canonical portable-local matrix.
+tasks.register('portableBridgeTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.client.ClassicPortableContextBridgeRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'portableBridgeTest'}
+
+// Source-complete crystal fusion / phase acquisition checks. Native runtime remains GameTestServer.
+['crystalFusionWorkTest':'cn.academy.port.fusion.ClassicFusorWorkRegressionTest',
+ 'crystalFusionDataTest':'cn.academy.port.fusion.ClassicFusionDataRegressionTest',
+ 'phaseLiquidWorldgenTest':'cn.academy.port.fusion.phase.PhaseLiquidWorldgenRegressionTest',
+ 'phaseLiquidWorldgenDataTest':'cn.academy.port.fusion.phase.PhaseLiquidWorldgenDataRegressionTest',
+ 'phaseFluidFlowTest':'cn.academy.port.fusion.flow.ClassicPhaseFlowRegressionTest'].each { taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+// Complete official third-person/dropped caller chain, including old EntityItem half-height origin.
+tasks.register('portableCallerChainTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.client.ClassicPortableCallerChainRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'portableCallerChainTest'}
+
+// Source wireless graph/device/resources; every existing portable/fusion task stays wired.
+['wirelessDeviceDataTest':'cn.academy.port.wireless.ClassicWirelessDeviceDataRegressionTest',
+ 'wirelessAssetTest':'cn.academy.port.wireless.ClassicWirelessAssetRegressionTest',
+ 'wirelessGraphTest':'cn.academy.port.wireless.ClassicWirelessGraphRegressionTest',
+ 'wirelessNbtTest':'cn.academy.port.wireless.ClassicWirelessDataRegressionTest',
+ 'wirelessServerLinkTest':'cn.academy.port.wireless.ClassicWirelessAllServerLinkRegressionTest',
+ 'wirelessVisualTest':'cn.academy.port.client.ClassicWirelessVisualTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Source IF node/receiver block charging, single native representation and external FE fallback.
+['nativeBlockChargingTest':'cn.academy.port.energy.ClassicNativeBlockChargingRegressionTest',
+ 'nativeBlockChargingServerLinkTest':'cn.academy.port.energy.ClassicNativeBlockChargingServerLinkTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Original1.0.7 MineDetect stock math/scan, textures, current renderer contract and server-only linkage.
+['mineDetectTest':'cn.academy.port.skill.MineDetectRegressionTest',
+ 'mineDetectVisualTest':'cn.academy.port.client.MineDetectVisualRegressionTest',
+ 'mineDetectDataTest':'cn.academy.port.skill.MineDetectDataRegressionTest',
+ 'mineDetectServerLinkTest':'cn.academy.port.skill.MineDetectServerClassloadingRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Canonical final Electromaster active contexts, source quirks, visual parameters and cold linkage.
+['electromasterFinalSkillsTest':'cn.academy.port.skill.ElectromasterFinalSkillsRegressionTest',
+ 'electromasterFinalLearningTest':'cn.academy.port.skill.ElectromasterFinalLearningRegressionTest',
+ 'electromasterFinalServerLinkTest':'cn.academy.port.skill.ElectromasterFinalServerClassloadingRegressionTest',
+ 'electromasterFinalShaderTest':'cn.academy.port.client.ElectromasterFinalShaderRegressionTest',
+ 'bodyIntensifyVisualTest':'cn.academy.port.client.BodyIntensifyVisualRegressionTest',
+ 'thunderClapVisualTest':'cn.academy.port.ThunderClapVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Original1.0.7 portable Meltdowner held contexts, literal quirks, visuals and cold linkage.
+['meltdownerStarterTest':'cn.academy.port.skill.MeltdownerStarterRegressionTest',
+ 'meltdownerStarterLearningTest':'cn.academy.port.skill.MeltdownerStarterLearningRegressionTest',
+ 'meltdownerStarterServerLinkTest':'cn.academy.port.skill.MeltdownerStarterServerLinkRegressionTest',
+ 'meltdownerStarterVisualTest':'cn.academy.port.client.MeltdownerStarterVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Literal classic1.0.7 Meltdowner wide ray and Basic mining state, genuine Normal learning.
+['meltdownerBeamTest':'cn.academy.port.skill.MeltdownerBeamRegressionTest',
+ 'meltdownerBeamUpstreamOracleTest':'cn.academy.port.skill.MeltdownerBeamUpstreamOracleTest',
+ 'meltdownerBeamLearningTest':'cn.academy.port.skill.MeltdownerBeamLearningRegressionTest',
+ 'meltdownerBeamServerLinkTest':'cn.academy.port.skill.MeltdownerBeamServerLinkRegressionTest',
+ 'meltdownerBeamVisualTest':'cn.academy.port.client.MeltdownerBeamVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Canonical no-alpha-test font fade and current-source/compiled/resource bindings.
+apply from: 'gradle/live-hud-font-tests.gradle'
+// Fail-closed canonical fixtures remain checked in every restored aggregate build.
+tasks.register('checkpointSourceIntegrityTest',JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass='cn.academy.port.testing.CheckpointSourceFixturesRegressionTest';enableAssertions=true}
+tasks.named('check') {dependsOn 'checkpointSourceIntegrityTest'}
+// Parent-owned integration: apply/append only after reviewing the staged capture adaptation.
+tasks.register('basicSentinelTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.skill.MineRayBasicSentinelRegressionTest'
+    enableAssertions = true
+}
+tasks.named('check') { dependsOn 'basicSentinelTest' }
+
+// Source-faithful Expert/Luck advanced mining; standalone checks use packaged canonical test fixtures.
+['advancedMineRayTest':'cn.academy.port.skill.AdvancedMineRayRegressionTest',
+ 'advancedMineRayLearningTest':'cn.academy.port.skill.AdvancedMineRayLearningRegressionTest',
+ 'advancedMineRayUpstreamOracleTest':'cn.academy.port.skill.AdvancedMineRayUpstreamOracleTest',
+ 'advancedMineRayServerLinkTest':'cn.academy.port.skill.AdvancedMineRayServerLinkRegressionTest',
+ 'advancedMineRayDataTest':'cn.academy.port.skill.AdvancedMineRayDataRegressionTest',
+ 'advancedMineRayVisualTest':'cn.academy.port.client.AdvancedMineRayVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('test') {dependsOn taskName}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Classic1.0.7 RayBarrage, JetEngine, ElectronMissile and their bounded Silicon Barn dependency.
+['meltdownerLateCombatTest':'cn.academy.port.skill.MeltdownerLateCombatRegressionTest',
+ 'meltdownerLateCombatOracleTest':'cn.academy.port.skill.MeltdownerLateCombatOracleTest',
+ 'meltdownerLateCombatLearningTest':'cn.academy.port.skill.MeltdownerLateCombatLearningRegressionTest',
+ 'meltdownerLateCombatServerLinkTest':'cn.academy.port.skill.MeltdownerLateCombatServerLinkTest',
+ 'meltdownerLateCombatVisualTest':'cn.academy.port.client.MeltdownerLateCombatVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Classic 1.0.7 Teleporter progression, isolated deterministic/source-fixture checks.
+['teleporterProgressionTest':'cn.academy.port.skill.TeleporterProgressionRegressionTest',
+ 'teleporterProgressionOracleTest':'cn.academy.port.skill.TeleporterProgressionOracleTest',
+ 'teleporterProgressionLearningTest':'cn.academy.port.skill.TeleporterProgressionLearningRegressionTest',
+ 'teleporterProgressionVisualTest':'cn.academy.port.client.TeleporterProgressionVisualRegressionTest',
+ 'teleporterProgressionServerLinkTest':'cn.academy.port.skill.TeleporterProgressionServerLinkTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Classic VecManip Lv2 gameplay, pinned-source and cosmetic transport regressions.
+[vectorStarterTest:"cn.academy.port.skill.VectorStarterRegressionTest",vectorStarterSourceTest:"cn.academy.port.skill.VectorStarterSourceOracleTest",vectorStarterLearningTest:"cn.academy.port.skill.VectorStarterLearningRegressionTest",vectorStarterVisualTest:"cn.academy.port.client.VectorStarterVisualRegressionTest",vectorStarterServerLinkTest:"cn.academy.port.skill.VectorStarterServerLinkTest"].each { taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named("check") { dependsOn(taskName) }
+}
+
+// Remaining classic Teleporter active skills, isolated deterministic/source-fixture checks.
+['teleporterFinalTest':'cn.academy.port.skill.TeleporterFinalRegressionTest',
+ 'teleporterFinalOracleTest':'cn.academy.port.skill.TeleporterFinalOracleTest',
+ 'teleporterFinalLearningTest':'cn.academy.port.skill.TeleporterFinalLearningRegressionTest',
+ 'teleporterFinalServerLinkTest':'cn.academy.port.skill.TeleporterFinalServerLinkTest',
+ 'teleporterFinalVisualTest':'cn.academy.port.client.TeleporterFinalVisualRegressionTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Classic VecManip Lv3/Lv4 arithmetic, pinned-source, learning, visual and server link regressions.
+[vectorCombatTest:"cn.academy.port.skill.VectorCombatRegressionTest",vectorCombatSourceTest:"cn.academy.port.skill.VectorCombatSourceOracleTest",vectorCombatLearningTest:"cn.academy.port.skill.VectorCombatLearningRegressionTest",vectorCombatVisualTest:"cn.academy.port.client.VectorCombatVisualRegressionTest",vectorCombatServerLinkTest:"cn.academy.port.skill.VectorCombatServerLinkTest"].each { taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named("check") { dependsOn(taskName) }
+}
+
+// Classic final VecManip contexts, immutable source/media checks and source-gated learning.
+apply from: "gradle/vector-final-tests.gradle"
+
+// Classic tutorial guide headless source/state/layout tests.
+apply from: "gradle/tutorial-guide-tests.gradle"
+
+// Shared source SkillPerform consumption/configuration and modern callback fences.
+['classicSkillConfigurationTest':'cn.academy.port.core.ClassicSkillConfigurationRegressionTest',
+ 'classicSkillConfigurationIntegrationTest':'cn.academy.port.core.ClassicSkillConfigurationIntegrationTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+['sharedSkillConsumptionTest':'cn.academy.port.core.SharedSkillConsumptionRegressionTest',
+ 'sharedSkillConsumptionSourceTest':'cn.academy.port.core.SharedSkillConsumptionSourceOracleTest',
+ 'sharedSkillConsumptionEventBusTest':'cn.academy.port.core.SharedSkillConsumptionEventBusTest',
+ 'sharedSkillConsumptionServerLinkTest':'cn.academy.port.core.SharedSkillConsumptionServerLinkTest'].each {taskName,className ->
+ tasks.register(taskName,JavaExec) {dependsOn testClasses;classpath=sourceSets.test.runtimeClasspath;mainClass=className;enableAssertions=true}
+ tasks.named('check') {dependsOn taskName}
+}
+
+// Classic 1.0.7 Metal Former source, finite-work, resource and common linkage checks.
+apply from: "gradle/metal-former-tests.gradle"
+
+// Complete classic terminal installation and genuine application adapters.
+apply from: "gradle/terminal-app-tests.gradle"
+
+// Classic Phase Generator source differential, finite-fluid and client-resource checks.
+apply from: "gradle/phase-generator-tests.gradle"
+
+// Classic wind family unchanged-source, finite IF, native API and visual-resource checks.
+apply from: "gradle/wind-generator-tests.gradle"
+
+// Classic RF/IF pair, real modern FE boundary and unchanged-original conservation witnesses.
+apply from: "gradle/energy-bridges-tests.gradle"
+
+// Source creative Cat Engine, dedicated tab and hidden dynamic display items.
+apply from: "gradle/classic-misc-tests.gradle"
+
+// Classic unpowered Ability Interferer original timing/geometry and source fixtures.
+apply from: "gradle/interferer-tests.gradle"
+
+// Classic passive/generic paths and independent immutable source oracles.
+apply from: "gradle/passive-skills-tests.gradle"
+
+// Packaged portable Hook source, recipe/asset, native-buffer and common-link evidence.
+apply from: "gradle/hook-acceptance-tests.gradle"
+
+// Source-defined five-page achievements and common-only linkage.
+apply from: "gradle/achievement-tests.gradle"
+
+// Unchanged-original source float prerequisite and learned-bit boundaries.
+apply from: 'gradle/classic-prerequisite-float-tests.gradle'
+
+// Unchanged-original developer/category event and resource lifecycle.
+apply from: 'gradle/classic-developer-lifecycle-tests.gradle'
+
+// M34 owner-reviewed additions. Append after serial promotion; no Gradle was run by this stage.
+tasks.register('classicClientInputBindingTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.client.ClassicClientInputBindingTest'
+    enableAssertions = true
+}
+tasks.register('classicTargetedContextTerminationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'cn.academy.port.core.TargetedContextTerminationTest'
+    enableAssertions = true
+}
+tasks.named('check') {
+    dependsOn tasks.named('classicClientInputBindingTest'), tasks.named('classicTargetedContextTerminationTest')
+}
+
+// Unchanged classic ClientRuntime source/host oracle against actual main compiler output.
+apply from: 'gradle/classic-client-runtime-oracle-tests.gradle'
+
+// Authenticated six-family input identity and bounded pending retirement.
+apply from: 'gradle/classic-single-key-identity-tests.gradle'
+// Actual current ThunderBolt compiler output and camera-relative geometry acceptance.
+apply from: 'gradle/classic-thunderbolt-geometry-tests.gradle'
+
+// Actual current Charging renderer and source-relative camera geometry acceptance.
+apply from: 'gradle/classic-charging-geometry-tests.gradle'
+
+// Actual compiled Meltdowner renderer camera-relative geometry regression.
+apply from: 'gradle/classic-meltdowner-geometry-tests.gradle'

@@ -1,0 +1,24 @@
+.gradle/
+build/
+run/
+run-*/
+.reference/
+.tools/
+
+.gradle-user/
+dist/
+
+# Local runtime evidence and private development state
+docs/runtime-evidence/
+.staging/
+recordings/
+logs/
+crash-reports/
+saves/
+*.log
+.env
+.env.*
+*.pem
+*.key
+.idea/
+.vscode/
