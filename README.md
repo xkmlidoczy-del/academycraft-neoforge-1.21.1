@@ -1,4 +1,4 @@
-# 学园都市 AcademyCraft · Minecraft 1.21.1 NeoForge 移植（M41 开发测试版）
+# AcademyCraft: Reborn · Minecraft 1.21.1 NeoForge 移植（M41 开发测试版）
 
 ## 原作者与特别致谢
 

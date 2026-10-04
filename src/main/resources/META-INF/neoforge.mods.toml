@@ -4,7 +4,7 @@ license="GPL-3.0; upstream additional restrictions, see NOTICE"
 [[mods]]
 modId="academy"
 version="0.1.0-dev"
-displayName="AcademyCraft Classic Port (development)"
+displayName="AcademyCraft: Reborn"
 authors="Lambda Innovation; port contributors"
 description='''Development port of AcademyCraft classic 1.7.10. Not feature-complete.'''
 [[dependencies.academy]]
